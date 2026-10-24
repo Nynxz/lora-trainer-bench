@@ -1,10 +1,10 @@
-# Every configuration the benchmark runs. Each runs twice, at `short` and `long` steps; the difference
-# in wall-clock time, over the difference in steps, is seconds per training step (loading, caching
-# and saving cancel out). Settings shared by all are in configs/; a variant only says what differs.
+# Every configuration the benchmark runs, once each for `steps` steps. Seconds per step is timed
+# from step `timed_from` to the last (bench.py notes when each step is reported, on its own clock).
+# Settings shared by all are in configs/; a variant only says what differs.
 
 [runs]
-short = 40     # past every trainer's warm-up (Fizgig's two epochs of 20 pictures)
-long = 160
+steps = 100       # a multiple of 20, so Fizgig's epochs come out even
+timed_from = 40   # past every trainer's warm-up (Fizgig's two epochs of 20 pictures)
 
 # ---- same maths, in pairs -------------------------------------------------------------------------
 # int8 weights AND int8 matmuls in the forward pass (W8A8), backward in bf16
@@ -59,22 +59,67 @@ group = "compiled: int8 weights, bf16 matmuls"
 set = { "model.qtype" = "int8", "model.compile" = true, "model.block_compile" = true }
 
 # ---- checking a trainer's own published figure ---------------------------------------------------
-# Fizgig's code notes 0.59 s/step at int8 and 0.29 compiled on a 5090; its memory tables use 0.25 MP
-# points, so 512 px at rank 8 is our reading of where that was measured.
+# Fizgig's code (utils/capabilities.py) gives 0.5917 s/step at int8 and 0.292 compiled, "measured per
+# step on an RTX 5090, Krea 2, rank 16", noting the figures are 0.25 MP measurements: 512 px, rank 16.
+# (The ids say r8 from an earlier reading; the runs are rank 16.)
 [[variant]]
 id = "fizgig-w8a8-512-r8"
 trainer = "fizgig"
-group = "check: 512 px, rank 8"
-set = { precision = "int8", resolution = 512, rank = 8 }
+group = "check: 512 px, rank 16"
+set = { precision = "int8", resolution = 512, rank = 16 }
 
 [[variant]]
 id = "fizgig-w8a8-512-r8-compiled"
 trainer = "fizgig"
-group = "check: 512 px, rank 8"
-set = { precision = "int8", resolution = 512, rank = 8, compile_blocks = "on" }
+group = "check: 512 px, rank 16"
+set = { precision = "int8", resolution = 512, rank = 16, compile_blocks = "on" }
 
 [[variant]]
 id = "zt-w8a8-512-r8"
 trainer = "zentrainer"
-group = "check: 512 px, rank 8"
-set = { "memory.int8_forward" = true, resolution = 512, rank = 8 }
+group = "check: 512 px, rank 16"
+set = { "memory.int8_forward" = true, resolution = 512, rank = 16 }
+
+# ---- ZenTrainer's own kernels on top of ComfyUI's path -------------------------------------------
+# The rows above use ComfyUI's int8 training path as it ships (backward in bf16). ZenTrainer's
+# memory.w8a8_backward also runs the input gradient on int8 tensor cores (its own kernel).
+[[variant]]
+id = "zt-w8a8-int8bwd"
+trainer = "zentrainer"
+group = "ZenTrainer extras: int8 backward"
+set = { "memory.int8_forward" = true, "memory.w8a8_backward" = true }
+
+# ---- AI Toolkit's own W8A8 ---------------------------------------------------------------------
+# AI Toolkit also has a W8A8 backend: qtype convrot8 (toolkit/util/convrot_quant.py: int8 weights
+# and per-token int8 activations through torch._int_mm, backward from the dequantized weight), so it
+# joins the W8A8 group as well as the weight-only one.
+[[variant]]
+id = "aitk-w8a8"
+trainer = "ai-toolkit"
+group = "int8 weights + int8 matmuls"
+set = { "model.qtype" = "convrot8" }
+
+[[variant]]
+id = "aitk-w8a8-compiled"
+trainer = "ai-toolkit"
+group = "compiled: int8 weights + int8 matmuls"
+set = { "model.qtype" = "convrot8", "model.compile" = true, "model.block_compile" = true }
+
+# ---- the rest of the 512 px check, so every trainer has it --------------------------------------
+[[variant]]
+id = "zt-w8a8-512-compiled"
+trainer = "zentrainer"
+group = "check: 512 px, rank 16"
+set = { "memory.int8_forward" = true, "memory.compile_blocks" = true, resolution = 512, rank = 16 }
+
+[[variant]]
+id = "aitk-w8a8-512"
+trainer = "ai-toolkit"
+group = "check: 512 px, rank 16"
+set = { "model.qtype" = "convrot8", resolution = 512, rank = 16 }
+
+[[variant]]
+id = "aitk-w8a8-512-compiled"
+trainer = "ai-toolkit"
+group = "check: 512 px, rank 16"
+set = { "model.qtype" = "convrot8", "model.compile" = true, "model.block_compile" = true, resolution = 512, rank = 16 }

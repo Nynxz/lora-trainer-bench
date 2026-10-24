@@ -1,0 +1,20 @@
+{
+  "gpu": "NVIDIA GeForce RTX 5090, 615.71.09, 32607 MiB, 575.00 W",
+  "cpu": "AMD Ryzen 9 9950X3D 16-Core Processor",
+  "ram_gb": 123,
+  "trainers": {
+    "zentrainer": {
+      "commit": "abd4261",
+      "torch": "2.13.0+cu130"
+    },
+    "ai-toolkit": {
+      "commit": "609f3e5",
+      "torch": "2.13.0+cu130"
+    },
+    "fizgig": {
+      "commit": "4b3f07f",
+      "torch": "2.10.0+cu128"
+    }
+  },
+  "recorded": "2026-10-24 20:16:27"
+}

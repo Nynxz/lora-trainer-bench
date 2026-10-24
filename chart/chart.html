@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Krea 2 Training Speed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Maroon Volt (engine/themes/maroon-volt): ComfyUI's brand palette */
+  :root {
+    --background: #211927; --card: #291f31; --secondary: #352942; --border: #473655;
+    --foreground: #f4eef7; --muted: #bcaecb; --volt: #f0ff41; --ink: #1a1320; --lavender: #a98bff;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--background); color: var(--foreground); font-family: Inter, system-ui, sans-serif;
+         -webkit-font-smoothing: antialiased; font-feature-settings: "tnum" 1, "cv11" 1; }
+  .card { width: 1600px; padding: 52px 64px 40px; display: grid; grid-template-rows: auto auto auto; gap: 34px;
+          position: relative; overflow: hidden; background: var(--card); border: 1px solid var(--border); }
+  header { display: flex; align-items: center; gap: 22px; }
+  header img { width: 60px; height: 60px; border-radius: 16px; }
+  h1 { margin: 0; font-family: "Inter Tight", "Inter Display", Inter, sans-serif; font-size: 44px; font-weight: 700; letter-spacing: -0.02em; }
+  .sub { color: var(--muted); font-size: 19px; margin-top: 6px; }
+  .when { margin-left: auto; text-align: right; color: var(--muted); font-size: 15px; line-height: 1.6; }
+  .when b { color: var(--volt); font-weight: 600; }
+  main { display: grid; grid-template-columns: 1.6fr 1fr; gap: 56px; min-height: 0; align-items: start; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.14em; font-size: 12.5px; color: var(--muted); margin-bottom: 18px; font-weight: 600; }
+  .logo { width: 52px; height: 52px; border-radius: 50%; background: var(--secondary); display: grid; place-items: center; overflow: hidden; }
+  .logo img { width: 100%; height: 100%; object-fit: cover; }
+  .logo.mark img { width: 58%; height: 58%; object-fit: contain; }
+  .who b { display: block; font-size: 21px; font-weight: 600; letter-spacing: -0.01em; }
+  .who span { color: var(--muted); font-size: 13px; }
+  .who span { display: block; }
+  .built { display: inline-flex; align-items: center; gap: 6px; margin-top: 5px; font-style: normal; font-size: 12px; font-weight: 500;
+           color: var(--foreground); background: var(--secondary); border: 1px solid var(--border); border-radius: 99px; padding: 2px 9px 2px 3px; }
+  .built img { width: 16px; height: 16px; border-radius: 4px; }
+  .bar { position: relative; height: 62px; border-radius: 12px; background: color-mix(in srgb, var(--secondary) 55%, transparent); }
+  .fill { position: absolute; inset: 0 auto 0 0; border-radius: 12px; background: color-mix(in srgb, var(--lavender) 38%, var(--secondary));
+          display: flex; align-items: center; justify-content: flex-end; padding-right: 18px; }
+  .ours .fill { background: var(--volt); }
+  .val { font-weight: 700; font-size: 23px; color: var(--foreground); white-space: nowrap; letter-spacing: -0.01em; }
+  .ours .val { color: var(--ink); }
+  .meta { position: absolute; top: 50%; transform: translateY(-50%); white-space: nowrap; font-size: 15px; color: var(--muted); }
+  .meta b { color: var(--foreground); font-weight: 600; }
+  .ours .meta b { color: var(--volt); }
+  aside { border-left: 1px solid var(--border); padding-left: 48px; }
+  dl { margin: 0; display: grid; grid-template-columns: 118px 1fr; gap: 13px 18px; font-size: 16.5px; line-height: 1.45; }
+  dt { color: var(--muted); }
+  dd { margin: 0; }
+  footer { color: var(--muted); font-size: 13.5px; line-height: 1.55; border-top: 1px solid var(--border); padding-top: 16px; }
+  .mock { position: absolute; top: 44%; left: 50%; transform: translate(-50%, -50%) rotate(-12deg); font-size: 180px; font-weight: 800;
+          letter-spacing: 0.1em; color: rgba(255, 93, 108, 0.14); border: 10px solid rgba(255, 93, 108, 0.14); padding: 0 40px;
+          border-radius: 26px; pointer-events: none; font-family: "Inter Tight", "Inter Display", Inter, sans-serif; }
+  .groups { display: flex; flex-direction: column; gap: 30px; }
+  .gtitle { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+  .gtitle b { font-size: 15px; font-weight: 600; letter-spacing: 0.02em; color: var(--foreground); }
+  .gtitle span { font-size: 13.5px; color: var(--muted); }
+  .rows { display: grid; grid-template-columns: 52px 168px 1fr; gap: 6px 18px; align-items: center; }
+  .row { display: contents; }
+  .how { grid-column: 3; font-size: 13px; color: var(--muted); margin: -2px 0 6px; }
+  .pending .bar { border: 1px dashed var(--border); background: none; display: flex; align-items: center; padding-left: 18px; }
+  .wait { color: var(--muted); font-size: 15px; }
+  .absent .bar { background: none; display: flex; align-items: center; padding-left: 18px; }
+  .absent .logo, .absent .who { opacity: 0.45; }
+</style>
+</head>
+<body>
+<div class="card" id="card"></div>
+<script>
+// A group per kind of maths; within a group, the trainers doing the same work. Bars share one scale
+// across groups; "faster" compares within a group only.
+fetch(new URLSearchParams(location.search).get("data") || "data_1024.json").then((r) => r.json()).then((d) => {
+  const all = d.groups.flatMap((g) => g.bars).filter((b) => b.s_per_step != null);
+  // a trainer without this kind of maths: a muted row saying so, not a gap
+  const longest = Math.max(...all.map((b) => b.s_per_step));
+  const group = (g) => {
+    const done = g.bars.filter((b) => b.s_per_step != null);
+    const slowest = Math.max(...done.map((b) => b.s_per_step));
+    const rows = g.bars.map((b) => {
+      const t = d.trainers[b.trainer];
+      const who = `<div class="logo ${t.mark ? "mark" : ""}"><img src="${t.logo}" alt=""></div>
+        <div class="who"><b>${t.name}</b><span>${t.version}</span>${t.built_on ? `<em class="built"><img src="${t.built_on.logo}" alt="">${t.built_on.text}</em>` : ""}</div>`;
+      if (b.absent)
+        return `<div class="row absent">${who}<div class="bar"><span class="wait">${b.absent}</span></div></div>`;
+      if (b.s_per_step == null)
+        return `<div class="row pending">${who}<div class="bar"><span class="wait">running…</span></div></div>`;
+      const w = (b.s_per_step / longest) * 60;
+      const x = slowest / b.s_per_step;
+      const tag = done.length < 2 ? "" : x >= 1.05 ? `<b>${x.toFixed(1)}× faster</b> · ` : "";
+      return `<div class="row ${t.ours ? "ours" : ""}">${who}
+        <div class="bar"><div class="fill" style="width:${w}%"><span class="val">${b.s_per_step.toFixed(2)} s</span></div>
+          <span class="meta" style="left:calc(${w}% + 14px)">${tag}${b.peak_gb.toFixed(1)} GB peak</span></div></div>
+        <div class="how">${b.how}</div>`;
+    }).join("");
+    return `<div class="group"><div class="gtitle"><b>${g.title}</b><span>${g.note}</span></div><div class="rows">${rows}</div></div>`;
+  };
+  const settings = d.settings.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+  document.getElementById("card").innerHTML = `
+    <header><img src="zt_badge.png" alt=""><div><h1>${d.title}</h1><div class="sub">${d.subtitle}</div></div>
+      <div class="when"><b>RTX 5090</b> · 32 GB<br>${d.date}<br>${d.unit} · lower is faster</div></header>
+    <main>
+      <section class="groups">${d.groups.map(group).join("")}</section>
+      <aside><div class="eyebrow">The same for all three</div><dl>${settings}</dl></aside>
+    </main>
+    <footer>${d.footnote}</footer>
+    ${d.mock || d.draft ? `<div class="mock">${d.mock ? "MOCK" : "DRAFT"}</div>` : ""}`;
+});
+</script>
+</body>
+</html>

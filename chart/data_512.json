@@ -1,0 +1,115 @@
+{
+  "draft": false,
+  "title": "Krea 2 LoRA training speed",
+  "date": "2026-10-24 \u00b7 100 steps each",
+  "unit": "seconds per step",
+  "trainers": {
+    "zt": {
+      "name": "ZenTrainer",
+      "version": "0.2.0 \u00b7 abd4261",
+      "logo": "zt_badge.png",
+      "ours": true,
+      "built_on": {
+        "logo": "comfy-logo-single.svg",
+        "text": "Built on ComfyUI"
+      }
+    },
+    "aitk": {
+      "name": "AI Toolkit",
+      "version": "0.13.39 \u00b7 609f3e5",
+      "logo": "aitk_logo.png",
+      "mark": true
+    },
+    "fizgig": {
+      "name": "Fizgig",
+      "version": "8.8 \u00b7 4b3f07f",
+      "logo": "fizgig_badge.png"
+    }
+  },
+  "footnote": "Seconds per step: the time from step 40 to step 100, read from each trainer's own progress output as it happens (past every trainer's warm-up and compile). Peak memory: the GPU's use during the run, less what was in use before. *Fizgig also trains its 8 small input, output and time layers (264), and pads captions to 512 tokens (its attention trims the padding). All three use PyTorch's attention: Fizgig's Krea 2 model loads with attn_mode \"torch\", flash-attn installed or not. Every run is reproducible from github.com/Nynxz/lora-trainer-bench.",
+  "subtitle": "At 512 px, where Fizgig publishes its figures (0.59 s, 0.29 s compiled)",
+  "settings": [
+    [
+      "Model",
+      "Krea 2 Raw (12.9B), int8 weights"
+    ],
+    [
+      "LoRA",
+      "rank 16, alpha 16, 256 layers*"
+    ],
+    [
+      "Resolution",
+      "512 \u00d7 512, batch 1"
+    ],
+    [
+      "Optimizer",
+      "AdamW, 1e-4, constant"
+    ],
+    [
+      "Memory",
+      "gradient checkpointing, cached latents and captions"
+    ],
+    [
+      "Not used",
+      "block swap, offloading, samples"
+    ],
+    [
+      "PyTorch",
+      "2.13.0 (Fizgig: its own 2.10.0)"
+    ],
+    [
+      "Dataset",
+      "20 synthetic pictures"
+    ]
+  ],
+  "groups": [
+    {
+      "title": "int8 weights + int8 matmuls",
+      "note": "512 px, rank 16",
+      "bars": [
+        {
+          "trainer": "zt",
+          "s_per_step": 0.39,
+          "peak_gb": 15.4,
+          "how": "ComfyUI's int8 layers (comfy-kitchen kernels)"
+        },
+        {
+          "trainer": "aitk",
+          "s_per_step": 0.59,
+          "peak_gb": 20.9,
+          "how": "convrot8: int8 weights and activations, torch._int_mm"
+        },
+        {
+          "trainer": "fizgig",
+          "s_per_step": 0.6,
+          "peak_gb": 16.0,
+          "how": "its own int8 path, quantised at load \u00b7 claims 0.59 s"
+        }
+      ]
+    },
+    {
+      "title": "Compiled \u00b7 int8 weights + int8 matmuls",
+      "note": "512 px, rank 16",
+      "bars": [
+        {
+          "trainer": "zt",
+          "s_per_step": 0.37,
+          "peak_gb": 15.3,
+          "how": "ComfyUI's int8 layers (comfy-kitchen kernels), compiled"
+        },
+        {
+          "trainer": "aitk",
+          "s_per_step": 0.45,
+          "peak_gb": 20.8,
+          "how": "convrot8: int8 weights and activations, torch._int_mm, compiled"
+        },
+        {
+          "trainer": "fizgig",
+          "s_per_step": 0.38,
+          "peak_gb": 19.7,
+          "how": "its own int8 path, quantised at load, compiled \u00b7 claims 0.29 s"
+        }
+      ]
+    }
+  ]
+}

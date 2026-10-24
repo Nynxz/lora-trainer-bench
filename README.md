@@ -12,69 +12,92 @@ is only the configurations, the dataset generator, the runner and the results.
 
 ## Results
 
-> Filled in from [`results/`](results/) once the runs are done. Each number links back to the raw
-> rows and logs that produced it.
+RTX 5090 (32 GB), 24 October 2026. Seconds per step, lower is faster; memory is the GPU's peak
+during the run over what was in use before it. Each number is a variant in [`matrix.toml`](matrix.toml)
+and its latest successful row in [`results/results.jsonl`](results/results.jsonl).
 
-The headline numbers compare **like with like**: each pair below does the same maths, so the
-difference within a pair is the trainers' implementations, not their choice of precision.
+### 1024 px
 
-| Same maths | ZenTrainer | The other trainer |
-|---|---|---|
-| int8 weights + int8 matmuls (W8A8 forward, bf16 backward) | `int8_forward: true` | Fizgig `--precision int8` |
-| int8 weights, bf16 matmuls (weight-only) | `int8_forward: false` | AI Toolkit `qtype: int8` |
+![Krea 2 LoRA training speed at 1024 px](chart/chart_1024.png)
 
-Comparing across the pairs mostly measures int8 matmuls against bf16 ones, which is worth knowing
-(it's most of the gap you'd see from each trainer's defaults), but it isn't a fair head-to-head of
-the trainers, so it's not presented as one.
+| | ZenTrainer | AI Toolkit | Fizgig |
+|---|---|---|---|
+| int8 weights + int8 matmuls | **1.60** · 16.8 GB | 2.27 · 20.8 GB | 2.95 · 18.8 GB |
+| int8 weights, bf16 matmuls | **2.21** · 18.2 GB | 2.77 · 20.7 GB | not offered |
+| compiled, int8 matmuls | **1.38** · 16.3 GB | *running* | 2.03 · 18.0 GB |
+| compiled, bf16 matmuls | *running* | 2.23 · 21.4 GB | not offered |
 
-## What's measured
+### 512 px
 
-Everything below is the same for every trainer:
+![Krea 2 LoRA training speed at 512 px](chart/chart_512.png)
 
-| | |
-|---|---|
-| Model | Krea 2 Raw (12.9B), from [Comfy-Org/Krea-2](https://huggingface.co/Comfy-Org/Krea-2) |
-| LoRA | rank 16, alpha 16, on the transformer's blocks and text-fusion blocks (256 layers) |
-| Data | 20 synthetic 1024×1024 pictures with captions ([`dataset/make_dataset.py`](dataset/make_dataset.py)), one bucket |
-| Training | batch 1, AdamW, learning rate 1e-4 constant, no warm-up, grad clipping 1.0, bf16 |
-| Memory | gradient checkpointing on; latents and caption encodings cached first; no block swap or offloading |
-| Off | sampling, validation, checkpoints during the run, torch.compile (except in the compiled variants) |
+| | ZenTrainer | AI Toolkit | Fizgig |
+|---|---|---|---|
+| int8 weights + int8 matmuls | **0.39** · 15.4 GB | 0.59 · 20.9 GB | 0.60 · 16.0 GB |
+| compiled, int8 matmuls | **0.37** · 15.3 GB | 0.45 · 20.8 GB | 0.38 · 19.7 GB |
 
-**Seconds per step** comes from timing each variant twice from the outside, at 40 and at 160 steps:
-`(time₁₆₀ − time₄₀) / 120`. Loading the model, caching and saving cost the same in both runs, so
-they cancel, and no trainer's own progress readout is trusted. 40 steps is past every trainer's
-warm-up (Fizgig, for example, warms up over its first two epochs).
+### Reading them
 
-**Peak memory** is the GPU's total use during the run (`nvidia-smi`, every half second), less what
-was in use before it started.
+Rows group trainers that do **the same maths**, so a difference within a row is the trainers'
+implementations, not their choice of precision:
 
-Every configuration is listed in [`matrix.toml`](matrix.toml); a variant only states what differs.
+| Same maths | ZenTrainer | AI Toolkit | Fizgig |
+|---|---|---|---|
+| int8 weights + int8 matmuls (W8A8 forward, bf16 backward) | `int8_forward: true` | `qtype: convrot8` | `--precision int8` |
+| int8 weights, bf16 matmuls (weight-only) | `int8_forward: false` | `qtype: int8` (torchao) | not offered: its int8 is always W8A8 |
+
+- **Uncompiled, ZenTrainer is about 1.4–1.8× faster at 1024 and 1.5× at 512.** All three run int8
+  matmuls in the first row, so it isn't int8 alone. ZenTrainer trains on ComfyUI's int8 layers, whose
+  comfy-kitchen CUDA kernels rotate and quantise the activations in one fused step and fold the
+  dequantisation into the matmul's epilogue (its `int8_linear`), where the others run separate steps.
+- **Compiling closes much of the gap.** torch.compile fuses those small steps for the others: at 512
+  it takes Fizgig from 0.60 to 0.38, level with ZenTrainer, while ZenTrainer itself gains about 5%.
+  At 1024 ZenTrainer stays ahead compiled (1.38 against 2.03).
+- **ZenTrainer is also ahead with bf16 matmuls** (2.21 against 2.77), where no int8 kernels run, so
+  part of the difference is outside the matmuls. We haven't profiled where yet; that's next.
 
 ### Differences that remain, and what they mean
 
-We matched everything we could. These are left, and none changes which maths a pair does:
+We matched everything we could. These are left, and none changes which maths a row does:
 
 - **The model file.** ZenTrainer reads ComfyUI's ready-quantised int8 file (`krea2_raw_int8_convrot`,
   rotated, a scale per row). AI Toolkit and Fizgig quantise the bf16 file as they load it. This
   affects accuracy slightly, not speed.
-- **Caption length.** Fizgig pads every caption to 512 tokens and masks the padding; the other two
-  use the caption's real length (about 27 tokens here). The padding doesn't change Fizgig's results,
-  but its blocks' linear layers do about 12% more work per step.
+- **Caption length.** Fizgig pads every caption to 512 tokens and masks the padding (its attention
+  trims it again); the other two use the caption's real length (about 27 tokens here). Fizgig's
+  blocks' linear layers do about 12% more work per step.
 - **LoRA layers.** Fizgig also trains 8 small layers outside the blocks (input, output, time and text
   projections): 264 against 256. A fraction of a percent of the work.
 - **PyTorch.** Each trainer uses the version it ships with: 2.13.0 for ZenTrainer and AI Toolkit,
   2.10.0 for Fizgig.
-- **Attention.** All three use PyTorch's SDPA (none has flash-attn, SageAttention or xformers
-  installed). AI Toolkit asks for the cuDNN kernel; the others let PyTorch choose.
+- **Attention.** All three use PyTorch's SDPA. Fizgig's Krea 2 model loads with `attn_mode="torch"`,
+  so flash-attn wouldn't be used even if installed; AI Toolkit asks for the cuDNN kernel; ZenTrainer
+  lets PyTorch choose.
 
 If you think a trainer is set up wrong, the configuration is in [`configs/`](configs/) and the
 flags in [`bench.py`](bench.py). Open an issue or a pull request: the point is a fair number.
 
 ### Checking a trainer against its own figures
 
-Fizgig's code notes 0.59 s/step on int8 and 0.29 compiled, on a 5090. The `check: 512 px, rank 8`
-variants run Fizgig, and ZenTrainer beside it, at the settings we believe that was measured at, to
-confirm the setup here reproduces it.
+Fizgig's code gives 0.5917 s/step at int8 and 0.292 compiled, "measured per step on an RTX 5090,
+Krea 2, rank 16", at 0.25 MP (`src/fizgig/utils/capabilities.py`): 512 px, rank 16. The `check`
+variants run it there (their ids say `r8` from an earlier reading; they run rank 16).
+
+| Fizgig, 512 px, rank 16 | Its figure | Here |
+|---|---|---|
+| int8 | 0.592 | **0.595** |
+| int8, compiled | 0.292 | **0.384** |
+
+The uncompiled figure reproduces, which is good evidence the setup here is sound. The compiled one
+doesn't: its steps are a steady 0.37–0.40 s with no recompiles in the timed window, so the
+difference is in the compiled code itself (a different PyTorch version is one candidate).
+
+### About the raw rows
+
+`results.jsonl` keeps every run, including ones that were superseded: ZenTrainer's weight-only rows
+before [ZenTrainer `abd4261`](https://github.com/Nynxz/ZenTrainer/commit/abd4261) (where
+`int8_forward: false` didn't take effect, so they were W8A8 again) and one run that failed to start.
+`bench.py results` and the charts use each variant's latest successful run.
 
 ## Running it yourself
 
@@ -91,9 +114,9 @@ Or step by step:
 ```sh
 trainers/install.sh zentrainer        # also ai-toolkit, fizgig
 scripts/download_models.sh            # the four Krea 2 files, about 45 GB, with their sha256
-uv run --no-project --with pyyaml python bench.py prepare      # dataset, caches, results/environment.json
-uv run --no-project --with pyyaml python bench.py run zt-w8a8  # one variant, at both step counts
-uv run --no-project --with pyyaml python bench.py results      # seconds per step so far
+uv run --no-project --with pyyaml --with pillow python bench.py prepare      # dataset, caches, results/environment.json
+uv run --no-project --with pyyaml --with pillow python bench.py run zt-w8a8  # one variant, 100 steps
+uv run --no-project --with pyyaml --with pillow python bench.py results      # seconds per step so far
 ```
 
 Already have the Krea 2 files? Point `paths.models` in [`bench.toml`](bench.toml) at a folder with

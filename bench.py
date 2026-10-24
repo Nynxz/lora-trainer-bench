@@ -1,14 +1,16 @@
 """Run the benchmark: each variant in matrix.toml, at two step counts, timed from the outside.
 
-    uv run --no-project --with pyyaml python bench.py prepare        dataset, caches, environment record
-    uv run --no-project --with pyyaml python bench.py run VARIANT [STEPS]
-    uv run --no-project --with pyyaml python bench.py all [--only GROUP]
-    uv run --no-project --with pyyaml python bench.py results        seconds per step for each variant
+    uv run --no-project --with pyyaml --with pillow python bench.py prepare        dataset, caches, environment record
+    uv run --no-project --with pyyaml --with pillow python bench.py run VARIANT [STEPS]
+    uv run --no-project --with pyyaml --with pillow python bench.py all [--only GROUP]
+    uv run --no-project --with pyyaml --with pillow python bench.py results        seconds per step for each variant
 
-A run's wall-clock time and the GPU's peak memory (nvidia-smi, every half second) go to
-results/results.jsonl; its whole output to work/logs/. Seconds per step for a variant is
-(time at `long` steps - time at `short`) / (long - short): loading, caching and saving are the same
-in both runs and cancel, whatever each trainer prints about its own speed.
+Each variant runs once, for [runs] steps. The runner reads the trainer's output as it comes and
+notes, on its own clock, when each training step is reported; seconds per step is the time from
+step `timed_from` to the last step, over the steps between. Loading, caching, warm-up and saving
+fall outside that window, and no trainer's own speed figure is used. The GPU's peak memory
+(nvidia-smi, every half second) and the run's wall-clock time go to results/results.jsonl too; the
+whole output to work/logs/.
 """
 
 from __future__ import annotations
@@ -72,7 +74,9 @@ def zentrainer(v: dict, steps: int) -> tuple[list[str], Path, dict]:
     path = WORK / "configs" / f"{v['id']}_{steps}.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(spec, indent=2))
-    return [str(SRC / "zentrainer/scripts/zt"), "train", str(path), "--port", str(ZT_PORT), "--follow", "--every", "20"], ROOT, {}
+    # --every 1 --interval 0.5: a line per step, within half a second of the server logging it
+    return [str(SRC / "zentrainer/scripts/zt"), "train", str(path), "--port", str(ZT_PORT), "--follow",
+            "--every", "1", "--interval", "0.5"], ROOT, {}
 
 
 def ai_toolkit(v: dict, steps: int) -> tuple[list[str], Path, dict]:
@@ -114,6 +118,12 @@ def fizgig(v: dict, steps: int) -> tuple[list[str], Path, dict]:
 
 
 COMMANDS = {"zentrainer": zentrainer, "ai-toolkit": ai_toolkit, "fizgig": fizgig}
+# each trainer's line for a training step (its own caching progress bars don't match): step, total
+STEP_LINE = {
+    "zentrainer": re.compile(r"^step (\d+)/(\d+)"),
+    "ai-toolkit": re.compile(r"bench-[^:\r\n]*:\s+\d+%\|[^|]*\|\s*(\d+)/(\d+) \["),
+    "fizgig": re.compile(r"steps:\s+\d+%\|[^|]*\|\s*(\d+)/(\d+) \["),
+}
 
 
 # ---- timing -----------------------------------------------------------------------------------------
@@ -125,19 +135,31 @@ def gpu_used_mb() -> int:
 
 
 def stop_zentrainer() -> None:
-    """The benchmark's ZenTrainer keeps running after `zt train` (it holds GPU memory): stop it
-    before another trainer runs. Only the one on ZT_PORT that lives under trainers/src."""
+    """The benchmark's ZenTrainer keeps running after `zt train` (it holds GPU memory, and the code
+    it loaded): stop it before every run, so each starts fresh on the pinned commit. Only the one on
+    ZT_PORT that lives under trainers/src/zentrainer (resolved: it may be a symlink)."""
+    home = os.path.realpath(SRC / "zentrainer")
     out = subprocess.run(["ss", "-ltnp"], capture_output=True, text=True).stdout
     for pid in re.findall(rf":{ZT_PORT}\s.*?pid=(\d+)", out):
-        if os.readlink(f"/proc/{pid}/cwd").startswith(str(SRC)):
+        cwd = os.path.realpath(f"/proc/{pid}/cwd")
+        if cwd == home or cwd.startswith(home + os.sep):
             os.kill(int(pid), signal.SIGTERM)
-            time.sleep(10)
+            for _ in range(60):  # until it has let go of the port (killed after a minute)
+                time.sleep(1)
+                if not os.path.exists(f"/proc/{pid}"):
+                    break
+            else:
+                os.kill(int(pid), signal.SIGKILL)
+                time.sleep(2)
+    for _ in range(30):
+        if f":{ZT_PORT} " not in subprocess.run(["ss", "-ltn"], capture_output=True, text=True).stdout:
+            break
+        time.sleep(1)
 
 
 def run(vid: str, steps: int) -> dict:
     v = variant(vid)
-    if v["trainer"] != "zentrainer":
-        stop_zentrainer()
+    stop_zentrainer()
     cmd, cwd, env = COMMANDS[v["trainer"]](v, steps)
     log = WORK / "logs" / f"{vid}_{steps}.log"
     log.parent.mkdir(parents=True, exist_ok=True)
@@ -151,14 +173,35 @@ def run(vid: str, steps: int) -> dict:
             time.sleep(0.5)
 
     threading.Thread(target=sample, daemon=True).start()
+    seen: dict[int, float] = {}  # step -> when it was first reported (our clock)
+    pattern = STEP_LINE[v["trainer"]]
     t0 = time.time()
     with open(log, "w") as f:
-        code = subprocess.run(cmd, cwd=cwd, env={**os.environ, **env}, stdout=f, stderr=subprocess.STDOUT).returncode
+        proc = subprocess.Popen(cmd, cwd=cwd, env={**os.environ, **env, "PYTHONUNBUFFERED": "1"},
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        buf = b""
+        while chunk := proc.stdout.read1(65536):
+            now = time.time()
+            f.write(chunk.decode(errors="replace"))
+            f.flush()  # the log fills as the run goes
+            buf += chunk
+            *lines, buf = re.split(rb"[\r\n]", buf)  # progress bars redraw with \r
+            for line in lines:
+                m = pattern.search(line.decode(errors="replace"))
+                if m:
+                    seen.setdefault(int(m.group(1)), now)
+        code = proc.wait()
     wall = time.time() - t0
     done.set()
-    row = {"variant": vid, "trainer": v["trainer"], "group": v["group"], "steps": steps, "wall_s": round(wall, 1),
-           "exit": code, "gpu_before_mb": base, "gpu_peak_mb": peak[0], "peak_over_base_mb": peak[0] - base,
-           "at": time.strftime("%Y-%m-%d %H:%M:%S")}
+    start = MATRIX["runs"]["timed_from"]
+    last = max(seen, default=0)
+    sps = (seen[last] - seen[start]) / (last - start) if start in seen and last > start else None
+    row = {"variant": vid, "trainer": v["trainer"], "group": v["group"], "steps": steps,
+           "s_per_step": round(sps, 4) if sps else None, "timed": [start, last], "steps_seen": len(seen),
+           # every step's time since the first, so anyone can check they arrived evenly (not in buffered bunches)
+           "step_times": {k: round(t - min(seen.values()), 2) for k, t in sorted(seen.items())},
+           "wall_s": round(wall, 1), "exit": code, "gpu_before_mb": base, "gpu_peak_mb": peak[0],
+           "peak_over_base_mb": peak[0] - base, "at": time.strftime("%Y-%m-%d %H:%M:%S")}
     RESULTS.parent.mkdir(exist_ok=True)
     with open(RESULTS, "a") as f:
         f.write(json.dumps(row) + "\n")
@@ -210,16 +253,15 @@ def environment() -> None:
 
 
 def results() -> list[dict]:
-    """Seconds per step for each variant with both runs done (the latest of each), and peak memory."""
+    """Each variant's latest finished run: seconds per step and peak memory."""
     rows = [json.loads(l) for l in RESULTS.read_text().splitlines() if l.strip()] if RESULTS.exists() else []
-    short, long = MATRIX["runs"]["short"], MATRIX["runs"]["long"]
     out = []
     for v in MATRIX["variant"]:
-        got = {r["steps"]: r for r in rows if r.get("variant") == v["id"] and r["exit"] == 0}
-        if short in got and long in got:
-            sps = (got[long]["wall_s"] - got[short]["wall_s"]) / (long - short)
-            out.append({"variant": v["id"], "trainer": v["trainer"], "group": v["group"], "s_per_step": round(sps, 3),
-                        "peak_gb": round(max(got[short]["peak_over_base_mb"], got[long]["peak_over_base_mb"]) / 1024, 1)})
+        got = [r for r in rows if r.get("variant") == v["id"] and r["exit"] == 0 and r.get("s_per_step")]
+        if got:
+            r = got[-1]
+            out.append({"variant": v["id"], "trainer": v["trainer"], "group": v["group"], "s_per_step": round(r["s_per_step"], 3),
+                        "peak_gb": round(r["peak_over_base_mb"] / 1024, 1)})
     for r in out:
         print(f"{r['group']:42} {r['variant']:30} {r['s_per_step']:7.3f} s/step   {r['peak_gb']:5.1f} GB")
     return out
@@ -230,16 +272,13 @@ def main() -> None:
     if cmd == "prepare":
         prepare()
     elif cmd == "run":
-        steps = [int(sys.argv[3])] if len(sys.argv) > 3 else [MATRIX["runs"]["short"], MATRIX["runs"]["long"]]
-        for s in steps:
-            run(sys.argv[2], s)
+        run(sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else MATRIX["runs"]["steps"])
     elif cmd == "all":
         only = sys.argv[sys.argv.index("--only") + 1] if "--only" in sys.argv else None
         # one trainer at a time, so the benchmark's ZenTrainer is started once and stopped once
         todo = [v for v in MATRIX["variant"] if not only or only in v["group"]]
         for v in sorted(todo, key=lambda v: v["trainer"] != "zentrainer"):
-            for s in (MATRIX["runs"]["short"], MATRIX["runs"]["long"]):
-                run(v["id"], s)
+            run(v["id"], MATRIX["runs"]["steps"])
         stop_zentrainer()
         results()
     elif cmd == "results":
