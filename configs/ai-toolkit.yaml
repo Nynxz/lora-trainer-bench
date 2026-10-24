@@ -1,0 +1,42 @@
+# ai-toolkit's config for the benchmark: the shared settings. {braces} are filled by bench.py.
+job: extension
+config:
+  name: "{name}"
+  process:
+    - type: sd_trainer
+      training_folder: "{work}/out/ai-toolkit"
+      device: cuda:0
+      network: {type: lora, linear: 16, linear_alpha: 16}
+      save: {dtype: bf16, save_every: 100000, max_step_saves_to_keep: 1}
+      datasets:
+        - folder_path: "{work}/data/bench20"
+          caption_ext: txt
+          caption_dropout_rate: 0
+          cache_latents_to_disk: true
+          resolution: [1024]
+      train:
+        batch_size: 1
+        steps: 0
+        gradient_accumulation: 1
+        train_unet: true
+        train_text_encoder: false
+        gradient_checkpointing: true
+        noise_scheduler: flowmatch
+        optimizer: adamw
+        lr: 0.0001
+        lr_scheduler: constant
+        max_grad_norm: 1.0
+        dtype: bf16
+        cache_text_embeddings: true
+        disable_sampling: true
+        skip_first_sample: true
+      model:
+        name_or_path: "{models}/diffusion_models/{dit_bf16}"
+        arch: krea2
+        quantize: true
+        qtype: int8
+        quantize_te: false
+        low_vram: false
+        layer_offloading: false
+      sample: {sampler: flowmatch, sample_every: 100000, width: 1024, height: 1024, prompts: ["a red circle"], seed: 42, sample_steps: 1}
+meta: {name: bench, version: "1.0"}

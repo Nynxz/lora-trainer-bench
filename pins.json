@@ -1,0 +1,5 @@
+{
+  "zentrainer": {"repo": "https://github.com/Nynxz/ZenTrainer", "commit": "f065539", "torch": "2.13.0+cu130 (from its comfy.lock)"},
+  "ai-toolkit": {"repo": "https://github.com/ostris/ai-toolkit", "commit": "609f3e5", "torch": "2.13.0+cu130 (its README)"},
+  "fizgig": {"repo": "https://github.com/shootthesound/Fizgig", "commit": "4b3f07f", "torch": "2.10.0+cu128 (its installer)"}
+}

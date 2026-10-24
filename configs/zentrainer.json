@@ -1,0 +1,14 @@
+{
+  "name": "bench",
+  "save_every": 0,
+  "model": {"kind": "split", "unet_name": "{dit_int8}", "clip_name": "{text_encoder}", "clip_type": "krea2", "vae_name": "{vae}"},
+  "dataset": {"folder": "bench20", "resolution": 1024, "caption_dropout": 0},
+  "network": {"algorithm": "LoRA", "rank": 16, "alpha": 16,
+              "targets": ["(^|\\.)blocks\\.\\d+\\.", "txtfusion\\.(?!projector)"]},
+  "optim": {"optimizer": "AdamW", "learning_rate": 0.0001, "scheduler": "constant", "warmup_steps": 0, "weight_decay": 0,
+            "steps": 0, "batch_size": 1, "grad_accumulation_steps": 1, "max_grad_norm": 1.0},
+  "memory": {"training_dtype": "bf16", "gradient_checkpointing": true, "offloading": false, "compile_blocks": false,
+             "int8_forward": true, "w8a8_backward": false},
+  "samples": {"every": 0, "prompts": [], "baseline": false, "likeness": false},
+  "validation": {"every": 0}
+}

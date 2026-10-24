@@ -1,0 +1,11 @@
+# Where things are. Everything else is derived; nothing here is specific to one machine.
+[paths]
+trainers = "trainers/src"     # the three trainers are cloned here (gitignored)
+models = "models"             # the Krea 2 files below (gitignored; scripts/download_models.sh)
+work = "work"                 # caches, outputs, logs of a run (gitignored)
+
+[models]
+dit_bf16 = "krea2_raw_bf16.safetensors"
+dit_int8 = "krea2_raw_int8_convrot.safetensors"   # ComfyUI's ready-quantised int8: what ZenTrainer reads
+text_encoder = "qwen3vl_4b_bf16.safetensors"
+vae = "qwen_image_vae.safetensors"

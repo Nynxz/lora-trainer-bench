@@ -1,0 +1,80 @@
+# Every configuration the benchmark runs. Each runs twice, at `short` and `long` steps; the difference
+# in wall-clock time, over the difference in steps, is seconds per training step (loading, caching
+# and saving cancel out). Settings shared by all are in configs/; a variant only says what differs.
+
+[runs]
+short = 40     # past every trainer's warm-up (Fizgig's two epochs of 20 pictures)
+long = 160
+
+# ---- same maths, in pairs -------------------------------------------------------------------------
+# int8 weights AND int8 matmuls in the forward pass (W8A8), backward in bf16
+[[variant]]
+id = "zt-w8a8"
+trainer = "zentrainer"
+group = "int8 weights + int8 matmuls"
+set = { "memory.int8_forward" = true }
+
+[[variant]]
+id = "fizgig-w8a8"
+trainer = "fizgig"
+group = "int8 weights + int8 matmuls"
+set = { precision = "int8" }
+
+# int8 weights dequantised to bf16 for every matmul (weight-only)
+[[variant]]
+id = "zt-weightonly"
+trainer = "zentrainer"
+group = "int8 weights, bf16 matmuls"
+set = { "memory.int8_forward" = false }
+
+[[variant]]
+id = "aitk-weightonly"
+trainer = "ai-toolkit"
+group = "int8 weights, bf16 matmuls"
+set = { "model.qtype" = "int8" }
+
+# ---- each with torch.compile on its blocks ------------------------------------------------------
+[[variant]]
+id = "zt-w8a8-compiled"
+trainer = "zentrainer"
+group = "compiled: int8 weights + int8 matmuls"
+set = { "memory.int8_forward" = true, "memory.compile_blocks" = true }
+
+[[variant]]
+id = "fizgig-w8a8-compiled"
+trainer = "fizgig"
+group = "compiled: int8 weights + int8 matmuls"
+set = { precision = "int8", compile_blocks = "on" }
+
+[[variant]]
+id = "zt-weightonly-compiled"
+trainer = "zentrainer"
+group = "compiled: int8 weights, bf16 matmuls"
+set = { "memory.int8_forward" = false, "memory.compile_blocks" = true }
+
+[[variant]]
+id = "aitk-weightonly-compiled"
+trainer = "ai-toolkit"
+group = "compiled: int8 weights, bf16 matmuls"
+set = { "model.qtype" = "int8", "model.compile" = true, "model.block_compile" = true }
+
+# ---- checking a trainer's own published figure ---------------------------------------------------
+# Fizgig's code notes 0.59 s/step at int8 and 0.29 compiled on a 5090; its memory tables use 0.25 MP
+# points, so 512 px at rank 8 is our reading of where that was measured.
+[[variant]]
+id = "fizgig-w8a8-512-r8"
+trainer = "fizgig"
+group = "check: 512 px, rank 8"
+set = { precision = "int8", resolution = 512, rank = 8 }
+
+[[variant]]
+id = "fizgig-w8a8-512-r8-compiled"
+trainer = "fizgig"
+group = "check: 512 px, rank 8"
+set = { precision = "int8", resolution = 512, rank = 8, compile_blocks = "on" }
+
+[[variant]]
+id = "zt-w8a8-512-r8"
+trainer = "zentrainer"
+group = "check: 512 px, rank 8"
+set = { "memory.int8_forward" = true, resolution = 512, rank = 8 }

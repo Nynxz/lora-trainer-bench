@@ -1,0 +1,12 @@
+# Fizgig's dataset config for the benchmark; the training flags are in bench.py (FIZGIG_FLAGS).
+[general]
+resolution = [{resolution}, {resolution}]
+caption_extension = ".txt"
+batch_size = 1
+num_repeats = 1
+enable_bucket = true
+bucket_no_upscale = true
+
+[[datasets]]
+image_directory = "{work}/data/bench20"
+cache_directory = "{work}/cache/fizgig_{resolution}"
