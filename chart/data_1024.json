@@ -1,5 +1,5 @@
 {
-  "draft": true,
+  "draft": false,
   "title": "Krea 2 LoRA training speed",
   "date": "2026-10-24 \u00b7 100 steps each",
   "unit": "seconds per step",
@@ -121,8 +121,8 @@
         },
         {
           "trainer": "aitk",
-          "s_per_step": null,
-          "peak_gb": null,
+          "s_per_step": 1.74,
+          "peak_gb": 21.3,
           "how": "convrot8: int8 weights and activations, torch._int_mm, compiled"
         },
         {
@@ -139,8 +139,8 @@
       "bars": [
         {
           "trainer": "zt",
-          "s_per_step": null,
-          "peak_gb": null,
+          "s_per_step": 2.0,
+          "peak_gb": 18.4,
           "how": "ComfyUI's int8 layers, int8_forward off, compiled"
         },
         {

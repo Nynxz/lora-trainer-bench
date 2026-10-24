@@ -15,7 +15,7 @@ HERE = Path(__file__).parent
 RESULTS = HERE.parent / "results" / "results.jsonl"
 PENDING = set(sys.argv[1:])
 DRAFT = True
-FINAL = {"512"}  # charts whose every run is in and checked: no DRAFT mark
+FINAL = {"512", "1024"}  # charts whose every run is in and checked: no DRAFT mark
 
 TRAINERS = {
     "zt": {"name": "ZenTrainer", "version": "0.2.0 · abd4261", "logo": "zt_badge.png", "ours": True,

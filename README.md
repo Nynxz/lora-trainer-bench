@@ -24,8 +24,8 @@ and its latest successful row in [`results/results.jsonl`](results/results.jsonl
 |---|---|---|---|
 | int8 weights + int8 matmuls | **1.60** · 16.8 GB | 2.27 · 20.8 GB | 2.95 · 18.8 GB |
 | int8 weights, bf16 matmuls | **2.21** · 18.2 GB | 2.77 · 20.7 GB | not offered |
-| compiled, int8 matmuls | **1.38** · 16.3 GB | *running* | 2.03 · 18.0 GB |
-| compiled, bf16 matmuls | *running* | 2.23 · 21.4 GB | not offered |
+| compiled, int8 matmuls | **1.38** · 16.3 GB | 1.74 · 21.3 GB | 2.03 · 18.0 GB |
+| compiled, bf16 matmuls | **2.00** · 18.4 GB | 2.23 · 21.4 GB | not offered |
 
 ### 512 px
 
@@ -52,9 +52,17 @@ implementations, not their choice of precision:
   dequantisation into the matmul's epilogue (its `int8_linear`), where the others run separate steps.
 - **Compiling closes much of the gap.** torch.compile fuses those small steps for the others: at 512
   it takes Fizgig from 0.60 to 0.38, level with ZenTrainer, while ZenTrainer itself gains about 5%.
-  At 1024 ZenTrainer stays ahead compiled (1.38 against 2.03).
+  At 1024 ZenTrainer stays ahead compiled: 1.38 against 1.74 (AI Toolkit) and 2.03 (Fizgig).
 - **ZenTrainer is also ahead with bf16 matmuls** (2.21 against 2.77), where no int8 kernels run, so
   part of the difference is outside the matmuls. We haven't profiled where yet; that's next.
+
+### ZenTrainer's own int8 backward
+
+Every row above uses each trainer's standard backward pass, in bf16. ZenTrainer can also run the
+input gradient of its int8 layers on int8 tensor cores (`memory.w8a8_backward`, its own kernel):
+the gradient is quantised to int8 per row, rounded stochastically. That changes the maths, so it
+isn't in the comparison; on its own it takes the 1024 int8 run from 1.60 to **1.35 s/step**
+(17.5 GB), uncompiled. Variant `zt-w8a8-int8bwd`.
 
 ### Differences that remain, and what they mean
 

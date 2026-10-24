@@ -151,8 +151,11 @@ def stop_zentrainer() -> None:
             else:
                 os.kill(int(pid), signal.SIGKILL)
                 time.sleep(2)
-    for _ in range(30):
-        if f":{ZT_PORT} " not in subprocess.run(["ss", "-ltn"], capture_output=True, text=True).stdout:
+    # until nothing holds the port: no listener, and no closed connections lingering (TIME_WAIT,
+    # about a minute), which `zt` (pinned commit) counts as the port being in use
+    for _ in range(120):
+        held = subprocess.run(["ss", "-tanH", f"( sport = :{ZT_PORT} )"], capture_output=True, text=True).stdout
+        if not held.strip():
             break
         time.sleep(1)
 
