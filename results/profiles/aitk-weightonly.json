@@ -1,0 +1,260 @@
+{
+ "steps": [
+  45,
+  47
+ ],
+ "step_ms": 2881.8,
+ "gpu_busy_ms": 2851.6,
+ "idle_ms": 30.3,
+ "kernels_per_step": 13880,
+ "by_kind_ms": {
+  "bf16/fp32 matmul": 1559.7,
+  "other elementwise / fused": 529.7,
+  "attention": 374.2,
+  "copies": 325.1,
+  "norms": 56.2,
+  "optimizer": 6.7
+ },
+ "top_kernels": [
+  {
+   "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_64x256_32x4_tn_align8>(cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_64x256_32x4_tn_align8::",
+   "ms": 684.73,
+   "calls": 280.0,
+   "kind": "bf16/fp32 matmul"
+  },
+  {
+   "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x64_64x3_nn_align8>(cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x64_64x3_nn_align8::",
+   "ms": 351.05,
+   "calls": 156.0,
+   "kind": "bf16/fp32 matmul"
+  },
+  {
+   "name": "void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<float, float, float, at::native::binary_internal::MulFu",
+   "ms": 252.05,
+   "calls": 1809.0,
+   "kind": "other elementwise / fused"
+  },
+  {
+   "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x128_32x4_tn_align8>(cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x128_32x4_tn_align8",
+   "ms": 217.38,
+   "calls": 56.0,
+   "kind": "bf16/fp32 matmul"
+  },
+  {
+   "name": "cudnn_generated_fort_native_sdpa_sm80_flash_bprop_wmma_f16_knob_26_64x64x128_1x4x1_cga1x1x1_kernel0_0",
+   "ms": 190.37,
+   "calls": 32.0,
+   "kind": "attention"
+  },
+  {
+   "name": "cudnn_generated_fort_native_sdpa_sm120_flash_fprop_f16_knob_3_64x64x128_4x1x1_cga1x1x1_kernel0_0",
+   "ms": 181.42,
+   "calls": 56.0,
+   "kind": "attention"
+  },
+  {
+   "name": "void at::native::unrolled_elementwise_kernel<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#7}::opera",
+   "ms": 124.79,
+   "calls": 1522.0,
+   "kind": "copies"
+  },
+  {
+   "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_64x256_32x4_nn_align8>(cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_64x256_32x4_nn_align8::",
+   "ms": 108.33,
+   "calls": 28.0,
+   "kind": "bf16/fp32 matmul"
+  },
+  {
+   "name": "void at::native::vectorized_elementwise_kernel<4, at::native::bfloat16_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda(float)#1}, std::array<char*, 2ul> >(in",
+   "ms": 101.95,
+   "calls": 1274.0,
+   "kind": "copies"
+  },
+  {
+   "name": "void at::native::vectorized_elementwise_kernel<4, at::native::CUDAFunctor_add<c10::BFloat16>, std::array<char*, 3ul> >(int, at::native::CUDAFunctor_add<c10::BFl",
+   "ms": 89.17,
+   "calls": 1069.0,
+   "kind": "other elementwise / fused"
+  },
+  {
+   "name": "void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<c10::BFloat16, c10::BFloat16, c10::BFloat16, at::native",
+   "ms": 74.81,
+   "calls": 1051.0,
+   "kind": "other elementwise / fused"
+  },
+  {
+   "name": "void at::native::unrolled_elementwise_kernel<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#12}::oper",
+   "ms": 64.9,
+   "calls": 488.0,
+   "kind": "copies"
+  },
+  {
+   "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x64_64x3_tn_align8>(cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x64_64x3_tn_align8::",
+   "ms": 43.94,
+   "calls": 131.0,
+   "kind": "bf16/fp32 matmul"
+  },
+  {
+   "name": "void at::native::vectorized_elementwise_kernel<4, at::native::BinaryFunctor<c10::BFloat16, c10::BFloat16, c10::BFloat16, at::native::binary_internal::MulFunctor",
+   "ms": 40.02,
+   "calls": 251.0,
+   "kind": "other elementwise / fused"
+  },
+  {
+   "name": "void at::native::(anonymous namespace)::vectorized_layer_norm_kernel<float, float, true>(int, float, float const*, float const*, float const*, float*, float*, f",
+   "ms": 30.27,
+   "calls": 242.0,
+   "kind": "norms"
+  },
+  {
+   "name": "void cutlass::Kernel2<cutlass_80_tensorop_s1688gemm_64x128_32x3_tn_align4>(cutlass_80_tensorop_s1688gemm_64x128_32x3_tn_align4::Params)",
+   "ms": 27.4,
+   "calls": 448.7,
+   "kind": "bf16/fp32 matmul"
+  },
+  {
+   "name": "void at::native::(anonymous namespace)::layer_norm_grad_input_kernel_vectorized<float, float, true>(float const*, float const*, float const*, float const*, floa",
+   "ms": 25.93,
+   "calls": 129.0,
+   "kind": "norms"
+  },
+  {
+   "name": "void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl_nocast<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::opera",
+   "ms": 24.86,
+   "calls": 319.0,
+   "kind": "copies"
+  },
+  {
+   "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_256x128_32x3_nn_align8>(cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_256x128_32x3_nn_align8",
+   "ms": 21.32,
+   "calls": 56.0,
+   "kind": "bf16/fp32 matmul"
+  },
+  {
+   "name": "void cutlass::Kernel2<cutlass_80_tensorop_s1688gemm_128x128_32x3_nt_align4>(cutlass_80_tensorop_s1688gemm_128x128_32x3_nt_align4::Params)",
+   "ms": 20.09,
+   "calls": 168.0,
+   "kind": "bf16/fp32 matmul"
+  },
+  {
+   "name": "void cutlass::Kernel2<cutlass_80_tensorop_s1688gemm_128x128_16x5_tn_align4>(cutlass_80_tensorop_s1688gemm_128x128_16x5_tn_align4::Params)",
+   "ms": 18.71,
+   "calls": 112.0,
+   "kind": "bf16/fp32 matmul"
+  },
+  {
+   "name": "void at::native::vectorized_elementwise_kernel<4, at::native::CUDAFunctor_add<float>, std::array<char*, 3ul> >(int, at::native::CUDAFunctor_add<float>, std::arr",
+   "ms": 18.29,
+   "calls": 169.0,
+   "kind": "other elementwise / fused"
+  },
+  {
+   "name": "void cutlass::Kernel2<cutlass_80_tensorop_s1688gemm_128x128_16x5_nn_align4>(cutlass_80_tensorop_s1688gemm_128x128_16x5_nn_align4::Params)",
+   "ms": 14.68,
+   "calls": 224.0,
+   "kind": "bf16/fp32 matmul"
+  },
+  {
+   "name": "void cutlass::Kernel2<cutlass_80_tensorop_s1688gemm_128x64_16x6_nt_align4>(cutlass_80_tensorop_s1688gemm_128x64_16x6_nt_align4::Params)",
+   "ms": 14.05,
+   "calls": 196.0,
+   "kind": "bf16/fp32 matmul"
+  },
+  {
+   "name": "void cutlass::Kernel2<cutlass_80_tensorop_s1688gemm_64x128_32x3_nn_align4>(cutlass_80_tensorop_s1688gemm_64x128_32x3_nn_align4::Params)",
+   "ms": 13.96,
+   "calls": 228.0,
+   "kind": "bf16/fp32 matmul"
+  },
+  {
+   "name": "void cutlass::Kernel2<cutlass_80_tensorop_s1688gemm_256x128_16x3_tn_align4>(cutlass_80_tensorop_s1688gemm_256x128_16x3_tn_align4::Params)",
+   "ms": 12.64,
+   "calls": 224.0,
+   "kind": "bf16/fp32 matmul"
+  },
+  {
+   "name": "void at::native::vectorized_elementwise_kernel<4, at::native::(anonymous namespace)::silu_kernel(at::TensorIteratorBase&)::{lambda()#1}::operator()() const::{la",
+   "ms": 10.31,
+   "calls": 60.0,
+   "kind": "other elementwise / fused"
+  },
+  {
+   "name": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at",
+   "ms": 9.52,
+   "calls": 112.0,
+   "kind": "other elementwise / fused"
+  },
+  {
+   "name": "void at::native::vectorized_elementwise_kernel<4, at::native::(anonymous namespace)::silu_backward_kernel(at::TensorIteratorBase&)::{lambda()#1}::operator()() c",
+   "ms": 7.82,
+   "calls": 32.0,
+   "kind": "other elementwise / fused"
+  },
+  {
+   "name": "void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl_nocast<at::native::CUDAFunctor_add<c10::BFloat16> >(at::TensorIteratorBase&, at::native:",
+   "ms": 6.53,
+   "calls": 121.0,
+   "kind": "other elementwise / fused"
+  },
+  {
+   "name": "void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl_nocast<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::opera",
+   "ms": 6.44,
+   "calls": 132.0,
+   "kind": "copies"
+  },
+  {
+   "name": "void cutlass::Kernel2<cutlass_80_tensorop_s1688gemm_128x128_16x4_nt_align4>(cutlass_80_tensorop_s1688gemm_128x128_16x4_nt_align4::Params)",
+   "ms": 5.8,
+   "calls": 28.0,
+   "kind": "bf16/fp32 matmul"
+  },
+  {
+   "name": "void cudnn::fusion::rearrange_n_convert_dq<true>(void const*, void*, void*, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, ",
+   "ms": 4.63,
+   "calls": 32.0,
+   "kind": "other elementwise / fused"
+  },
+  {
+   "name": "void cudnn::fusion::compute_dot_do_o_specialized<true, 128>(void const*, void const*, void*, void*, unsigned int, unsigned int, unsigned int, unsigned int, unsi",
+   "ms": 3.96,
+   "calls": 32.0,
+   "kind": "other elementwise / fused"
+  },
+  {
+   "name": "void at::native::vectorized_elementwise_kernel<4, at::native::sigmoid_kernel_cuda(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#4}::oper",
+   "ms": 3.13,
+   "calls": 60.0,
+   "kind": "other elementwise / fused"
+  },
+  {
+   "name": "Optimizer.step#AdamW.step",
+   "ms": 3.1,
+   "calls": 1.0,
+   "kind": "optimizer"
+  },
+  {
+   "name": "void at::native::vectorized_elementwise_kernel<4, at::native::sigmoid_backward_kernel_cuda(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()",
+   "ms": 2.97,
+   "calls": 32.0,
+   "kind": "other elementwise / fused"
+  },
+  {
+   "name": "void at::native::vectorized_elementwise_kernel<4, at::native::FillFunctor<float>, std::array<char*, 1ul> >(int, at::native::FillFunctor<float>, std::array<char*",
+   "ms": 2.94,
+   "calls": 118.0,
+   "kind": "other elementwise / fused"
+  },
+  {
+   "name": "void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl_nocast<at::native::(anonymous namespace)::where_kernel_impl(at::TensorIterator&)::{lambd",
+   "ms": 2.6,
+   "calls": 58.0,
+   "kind": "other elementwise / fused"
+  },
+  {
+   "name": "void cudnn::fusion::fmha_reduce_head<true>(void const*, void*, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int,",
+   "ms": 2.39,
+   "calls": 56.0,
+   "kind": "attention"
+  }
+ ]
+}

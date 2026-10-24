@@ -1,0 +1,261 @@
+{
+ "steps": [
+  45,
+  47
+ ],
+ "step_ms": 2315.3,
+ "gpu_busy_ms": 2252.9,
+ "idle_ms": 62.4,
+ "kernels_per_step": 13610,
+ "by_kind_ms": {
+  "bf16/fp32 matmul": 1480.4,
+  "attention": 272.4,
+  "other elementwise / fused": 271.2,
+  "copies": 114.6,
+  "norms": 53.6,
+  "quantise / rotate / dequantise": 52.9,
+  "optimizer": 7.8
+ },
+ "top_kernels": [
+  {
+   "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x64_64x3_tn_align8>(cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x64_64x3_tn_align8::",
+   "ms": 724.65,
+   "calls": 430.0,
+   "kind": "bf16/fp32 matmul"
+  },
+  {
+   "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x64_64x3_nn_align8>(cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x64_64x3_nn_align8::",
+   "ms": 457.6,
+   "calls": 182.7,
+   "kind": "bf16/fp32 matmul"
+  },
+  {
+   "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x128_32x4_tn_align8>(cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x128_32x4_tn_align8",
+   "ms": 214.27,
+   "calls": 56.0,
+   "kind": "bf16/fp32 matmul"
+  },
+  {
+   "name": "void pytorch_flash::flash_bwd_dq_dk_dv_loop_seqk_parallel_kernel<Flash_bwd_kernel_traits<128, 64, 64, 8, 4, 2, 2, true, false, cutlass::bfloat16_t, Flash_kernel",
+   "ms": 144.8,
+   "calls": 32.0,
+   "kind": "attention"
+  },
+  {
+   "name": "void pytorch_flash::flash_fwd_kernel<Flash_fwd_kernel_traits<128, 128, 64, 4, false, false, cutlass::bfloat16_t, Flash_kernel_traits<128, 128, 64, 4, cutlass::b",
+   "ms": 121.5,
+   "calls": 64.0,
+   "kind": "attention"
+  },
+  {
+   "name": "void at::native::vectorized_elementwise_kernel<4, at::native::CUDAFunctor_add<c10::BFloat16>, std::array<char*, 3ul> >(int, at::native::CUDAFunctor_add<c10::BFl",
+   "ms": 76.32,
+   "calls": 1097.0,
+   "kind": "other elementwise / fused"
+  },
+  {
+   "name": "void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl<at::native::BinaryFunctor<c10::BFloat16, c10::BFloat16, c10::BFloat16, at::native::binar",
+   "ms": 61.46,
+   "calls": 764.0,
+   "kind": "other elementwise / fused"
+  },
+  {
+   "name": "void comfy::(anonymous namespace)::dequantize_int8_convrot_groups64_kernel<4, __nv_bfloat16>(signed char const*, float const*, __nv_bfloat16*, int, int)",
+   "ms": 52.9,
+   "calls": 448.0,
+   "kind": "quantise / rotate / dequantise"
+  },
+  {
+   "name": "void at::native::unrolled_elementwise_kernel<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#7}::opera",
+   "ms": 38.76,
+   "calls": 1329.0,
+   "kind": "copies"
+  },
+  {
+   "name": "void at::native::vectorized_elementwise_kernel<4, at::native::BinaryFunctor<c10::BFloat16, c10::BFloat16, c10::BFloat16, at::native::binary_internal::MulFunctor",
+   "ms": 38.29,
+   "calls": 256.0,
+   "kind": "other elementwise / fused"
+  },
+  {
+   "name": "void at::native::(anonymous namespace)::vectorized_layer_norm_kernel<float, float, true>(int, float, float const*, float const*, float const*, float*, float*, f",
+   "ms": 28.44,
+   "calls": 258.0,
+   "kind": "norms"
+  },
+  {
+   "name": "void at::native::vectorized_elementwise_kernel<4, at::native::bfloat16_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda(float)#1}, std::array<char*, 2ul> >(in",
+   "ms": 28.25,
+   "calls": 1583.0,
+   "kind": "copies"
+  },
+  {
+   "name": "void at::native::(anonymous namespace)::layer_norm_grad_input_kernel_vectorized<float, float, true>(float const*, float const*, float const*, float const*, floa",
+   "ms": 25.2,
+   "calls": 129.0,
+   "kind": "norms"
+  },
+  {
+   "name": "void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl_nocast<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::opera",
+   "ms": 23.23,
+   "calls": 309.0,
+   "kind": "copies"
+  },
+  {
+   "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_256x128_32x3_nn_align8>(cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_256x128_32x3_nn_align8",
+   "ms": 21.76,
+   "calls": 56.0,
+   "kind": "bf16/fp32 matmul"
+  },
+  {
+   "name": "void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<float, float, float, at::native::binary_internal::MulFu",
+   "ms": 16.82,
+   "calls": 229.0,
+   "kind": "other elementwise / fused"
+  },
+  {
+   "name": "void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<c10::BFloat16, c10::BFloat16, c10::BFloat16, at::native",
+   "ms": 15.51,
+   "calls": 310.0,
+   "kind": "other elementwise / fused"
+  },
+  {
+   "name": "void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl_nocast<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::opera",
+   "ms": 13.28,
+   "calls": 311.0,
+   "kind": "copies"
+  },
+  {
+   "name": "void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl_nocast<at::native::addcmul_cuda_kernel(at::TensorIteratorBase&, c10::Scalar const&)::{la",
+   "ms": 12.09,
+   "calls": 112.0,
+   "kind": "other elementwise / fused"
+  },
+  {
+   "name": "Memcpy DtoD (Device -> Device)",
+   "ms": 10.19,
+   "calls": 67.0,
+   "kind": "copies"
+  },
+  {
+   "name": "void at::native::vectorized_elementwise_kernel<4, at::native::(anonymous namespace)::silu_kernel(at::TensorIteratorBase&)::{lambda()#1}::operator()() const::{la",
+   "ms": 9.89,
+   "calls": 64.0,
+   "kind": "other elementwise / fused"
+  },
+  {
+   "name": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at",
+   "ms": 8.7,
+   "calls": 112.0,
+   "kind": "other elementwise / fused"
+  },
+  {
+   "name": "void cutlass::Kernel2<cutlass_80_wmma_tensorop_bf16_s161616gemm_bf16_32x32_128x1_nt_align8>(cutlass_80_wmma_tensorop_bf16_s161616gemm_bf16_32x32_128x1_nt_align8",
+   "ms": 8.25,
+   "calls": 168.0,
+   "kind": "bf16/fp32 matmul"
+  },
+  {
+   "name": "void cutlass::Kernel2<cutlass_75_tensorop_bf16_s1688gemm_bf16_128x64_tn_align1>(cutlass_75_tensorop_bf16_s1688gemm_bf16_128x64_tn_align1::Params)",
+   "ms": 8.11,
+   "calls": 112.0,
+   "kind": "bf16/fp32 matmul"
+  },
+  {
+   "name": "void cutlass::Kernel2<cutlass_80_wmma_tensorop_bf16_s161616gemm_bf16_32x32_128x1_tn_align8>(cutlass_80_wmma_tensorop_bf16_s161616gemm_bf16_32x32_128x1_tn_align8",
+   "ms": 7.57,
+   "calls": 412.0,
+   "kind": "bf16/fp32 matmul"
+  },
+  {
+   "name": "void at::native::vectorized_elementwise_kernel<4, at::native::(anonymous namespace)::silu_backward_kernel(at::TensorIteratorBase&)::{lambda()#1}::operator()() c",
+   "ms": 7.01,
+   "calls": 32.0,
+   "kind": "other elementwise / fused"
+  },
+  {
+   "name": "void cutlass::Kernel2<cutlass_80_tensorop_s16816gemm_bf16_64x64_32x6_nt_align8>(cutlass_80_tensorop_s16816gemm_bf16_64x64_32x6_nt_align8::Params)",
+   "ms": 6.94,
+   "calls": 196.0,
+   "kind": "bf16/fp32 matmul"
+  },
+  {
+   "name": "void cutlass::Kernel2<cutlass_80_wmma_tensorop_bf16_s161616gemm_bf16_32x32_32x1_tn_align8>(cutlass_80_wmma_tensorop_bf16_s161616gemm_bf16_32x32_32x1_tn_align8::",
+   "ms": 6.71,
+   "calls": 376.0,
+   "kind": "bf16/fp32 matmul"
+  },
+  {
+   "name": "void at::native::vectorized_elementwise_kernel<4, at::native::CUDAFunctor_add<float>, std::array<char*, 3ul> >(int, at::native::CUDAFunctor_add<float>, std::arr",
+   "ms": 5.92,
+   "calls": 60.0,
+   "kind": "other elementwise / fused"
+  },
+  {
+   "name": "void cutlass::Kernel2<cutlass_80_wmma_tensorop_bf16_s161616gemm_bf16_32x32_32x1_nn_align8>(cutlass_80_wmma_tensorop_bf16_s161616gemm_bf16_32x32_32x1_nn_align8::",
+   "ms": 5.34,
+   "calls": 210.0,
+   "kind": "bf16/fp32 matmul"
+  },
+  {
+   "name": "void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl_nocast<at::native::CUDAFunctor_add<c10::BFloat16> >(at::TensorIteratorBase&, at::native:",
+   "ms": 5.25,
+   "calls": 117.0,
+   "kind": "other elementwise / fused"
+  },
+  {
+   "name": "Optimizer.step#AdamW.step",
+   "ms": 4.69,
+   "calls": 1.0,
+   "kind": "optimizer"
+  },
+  {
+   "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_64x128_64x3_tn_align8>(cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_64x128_64x3_tn_align8::",
+   "ms": 4.59,
+   "calls": 56.0,
+   "kind": "bf16/fp32 matmul"
+  },
+  {
+   "name": "void pytorch_flash::flash_bwd_dot_do_o_kernel<true, Flash_bwd_kernel_traits<128, 64, 64, 8, 4, 2, 2, true, false, cutlass::bfloat16_t, Flash_kernel_traits<128, ",
+   "ms": 3.71,
+   "calls": 32.0,
+   "kind": "attention"
+  },
+  {
+   "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_64x128_64x3_nn_align8>(cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_64x128_64x3_nn_align8::",
+   "ms": 3.34,
+   "calls": 56.0,
+   "kind": "bf16/fp32 matmul"
+  },
+  {
+   "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_64x64_32x6_nn_align8>(cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_64x64_32x6_nn_align8::Pa",
+   "ms": 3.06,
+   "calls": 112.0,
+   "kind": "bf16/fp32 matmul"
+  },
+  {
+   "name": "void at::native::vectorized_elementwise_kernel<4, at::native::FillFunctor<float>, std::array<char*, 1ul> >(int, at::native::FillFunctor<float>, std::array<char*",
+   "ms": 2.97,
+   "calls": 118.0,
+   "kind": "other elementwise / fused"
+  },
+  {
+   "name": "void at::native::vectorized_elementwise_kernel<4, at::native::sigmoid_kernel_cuda(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#4}::oper",
+   "ms": 2.76,
+   "calls": 64.0,
+   "kind": "other elementwise / fused"
+  },
+  {
+   "name": "void at::native::vectorized_elementwise_kernel<4, at::native::sigmoid_backward_kernel_cuda(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()",
+   "ms": 2.74,
+   "calls": 32.0,
+   "kind": "other elementwise / fused"
+  },
+  {
+   "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_bf16_128x64_32x6_nt_align2>(cutlass_80_tensorop_bf16_s16816gemm_bf16_128x64_32x6_nt_align2::Params)",
+   "ms": 2.62,
+   "calls": 28.0,
+   "kind": "bf16/fp32 matmul"
+  }
+ ]
+}

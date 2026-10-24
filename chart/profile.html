@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where Training Time Goes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Maroon Volt (engine/themes/maroon-volt): ComfyUI's brand palette */
+  :root {
+    --background: #211927; --card: #291f31; --secondary: #352942; --border: #473655;
+    --foreground: #f4eef7; --muted: #bcaecb; --volt: #f0ff41; --ink: #1a1320; --lavender: #a98bff;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--background); color: var(--foreground); font-family: Inter, system-ui, sans-serif;
+         -webkit-font-smoothing: antialiased; font-feature-settings: "tnum" 1, "cv11" 1; }
+  .card { width: 1600px; padding: 52px 64px 40px; display: grid; grid-template-rows: auto auto auto; gap: 34px;
+          position: relative; overflow: hidden; background: var(--card); border: 1px solid var(--border); }
+  header { display: flex; align-items: center; gap: 22px; }
+  header img { width: 60px; height: 60px; border-radius: 16px; }
+  h1 { margin: 0; font-family: "Inter Tight", "Inter Display", Inter, sans-serif; font-size: 44px; font-weight: 700; letter-spacing: -0.02em; }
+  .sub { color: var(--muted); font-size: 19px; margin-top: 6px; }
+  .when { margin-left: auto; text-align: right; color: var(--muted); font-size: 15px; line-height: 1.6; }
+  .when b { color: var(--volt); font-weight: 600; }
+  main { display: grid; grid-template-columns: 1.6fr 1fr; gap: 56px; min-height: 0; align-items: start; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.14em; font-size: 12.5px; color: var(--muted); margin-bottom: 18px; font-weight: 600; }
+  .logo { width: 52px; height: 52px; border-radius: 50%; background: var(--secondary); display: grid; place-items: center; overflow: hidden; }
+  .logo img { width: 100%; height: 100%; object-fit: cover; }
+  .logo.mark img { width: 58%; height: 58%; object-fit: contain; }
+  .who b { display: block; font-size: 21px; font-weight: 600; letter-spacing: -0.01em; }
+  .who span { color: var(--muted); font-size: 13px; }
+  .who span { display: block; }
+  .built { display: inline-flex; align-items: center; gap: 6px; margin-top: 5px; font-style: normal; font-size: 12px; font-weight: 500;
+           color: var(--foreground); background: var(--secondary); border: 1px solid var(--border); border-radius: 99px; padding: 2px 9px 2px 3px; }
+  .built img { width: 16px; height: 16px; border-radius: 4px; }
+  .bar { position: relative; height: 62px; border-radius: 12px; background: color-mix(in srgb, var(--secondary) 55%, transparent); }
+  .fill { position: absolute; inset: 0 auto 0 0; border-radius: 12px; background: color-mix(in srgb, var(--lavender) 38%, var(--secondary));
+          display: flex; align-items: center; justify-content: flex-end; padding-right: 18px; }
+  .ours .fill { background: var(--volt); }
+  .val { font-weight: 700; font-size: 23px; color: var(--foreground); white-space: nowrap; letter-spacing: -0.01em; }
+  .ours .val { color: var(--ink); }
+  .meta { position: absolute; top: 50%; transform: translateY(-50%); white-space: nowrap; font-size: 15px; color: var(--muted); }
+  .meta b { color: var(--foreground); font-weight: 600; }
+  .ours .meta b { color: var(--volt); }
+  aside { border-left: 1px solid var(--border); padding-left: 48px; }
+  dl { margin: 0; display: grid; grid-template-columns: 118px 1fr; gap: 13px 18px; font-size: 16.5px; line-height: 1.45; }
+  dt { color: var(--muted); }
+  dd { margin: 0; }
+  footer { color: var(--muted); font-size: 13.5px; line-height: 1.55; border-top: 1px solid var(--border); padding-top: 16px; }
+  .mock { position: absolute; top: 44%; left: 50%; transform: translate(-50%, -50%) rotate(-12deg); font-size: 180px; font-weight: 800;
+          letter-spacing: 0.1em; color: rgba(255, 93, 108, 0.14); border: 10px solid rgba(255, 93, 108, 0.14); padding: 0 40px;
+          border-radius: 26px; pointer-events: none; font-family: "Inter Tight", "Inter Display", Inter, sans-serif; }
+  .groups { display: flex; flex-direction: column; gap: 30px; }
+  .gtitle { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+  .gtitle b { font-size: 15px; font-weight: 600; letter-spacing: 0.02em; color: var(--foreground); }
+  .gtitle span { font-size: 13.5px; color: var(--muted); }
+  .rows { display: grid; grid-template-columns: 52px 168px 1fr; gap: 6px 18px; align-items: center; }
+  .row { display: contents; }
+  .how { grid-column: 3; font-size: 13px; color: var(--muted); margin: -2px 0 6px; }
+  .pending .bar { border: 1px dashed var(--border); background: none; display: flex; align-items: center; padding-left: 18px; }
+  .wait { color: var(--muted); font-size: 15px; }
+  .absent .bar { background: none; display: flex; align-items: center; padding-left: 18px; }
+  .absent .logo, .absent .who { opacity: 0.45; }
+  .stack { position: relative; height: 54px; border-radius: 12px; background: color-mix(in srgb, var(--secondary) 55%, transparent); overflow: hidden; }
+  .seg { position: absolute; top: 0; bottom: 0; }
+  .seg.idle { background: repeating-linear-gradient(135deg, transparent 0 6px, rgba(244, 238, 247, 0.22) 6px 9px); }
+  .total { font-weight: 700; font-size: 21px; white-space: nowrap; letter-spacing: -0.01em; }
+  .total small { font-weight: 500; font-size: 14px; color: var(--muted); margin-left: 8px; }
+  .prow { display: grid; grid-template-columns: 52px 168px 1fr 150px; gap: 6px 18px; align-items: center; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 22px; font-size: 14.5px; color: var(--muted); }
+  .legend i { display: inline-block; width: 14px; height: 14px; border-radius: 4px; margin-right: 8px; vertical-align: -2px; }
+  .legend i.idle { background: repeating-linear-gradient(135deg, var(--secondary) 0 3px, rgba(244, 238, 247, 0.4) 3px 5px); }
+  .find { font-size: 15.5px; line-height: 1.5; margin: 0; padding-left: 18px; }
+  .find li { margin-bottom: 8px; }
+  .find b { color: var(--volt); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="card" id="card"></div>
+<script>
+// One bar per trainer: a step's GPU time by kind of work, then the time the GPU sat idle. All
+// bars share one scale, so a longer bar is a slower step.
+const COLOURS = {"int8 matmul": "#f0ff41", "bf16/fp32 matmul": "#a98bff", "attention": "#ff8fb1",
+  "quantise / rotate / dequantise": "#6fe3c1", "other elementwise / fused": "#ffb86b", "copies": "#7fb2ff",
+  "norms": "#d9c9ea", "optimizer": "#8f7fa3"};
+const LABELS = {"bf16/fp32 matmul": "bf16 matmuls", "int8 matmul": "int8 matmuls", "other elementwise / fused": "elementwise ops",
+  "quantise / rotate / dequantise": "quantise / dequantise", "copies": "copies and casts"};
+fetch(new URLSearchParams(location.search).get("data") || "data_profile.json").then((r) => r.json()).then((d) => {
+  const longest = Math.max(...d.groups.flatMap((g) => g.bars.map((b) => b.step_ms)));
+  const kinds = Object.keys(COLOURS);
+  const bar = (b) => {
+    const t = d.trainers[b.trainer];
+    let x = 0;
+    const segs = kinds.filter((k) => b.by_kind[k]).map((k) => {
+      const w = (b.by_kind[k] / longest) * 100, s = `<div class="seg" title="${LABELS[k] || k}: ${b.by_kind[k].toFixed(0)} ms" style="left:${x}%;width:${w}%;background:${COLOURS[k]}"></div>`;
+      x += w; return s;
+    }).join("") + `<div class="seg idle" title="idle: ${b.idle_ms.toFixed(0)} ms" style="left:${x}%;width:${(b.idle_ms / longest) * 100}%"></div>`;
+    return `<div class="prow ${t.ours ? "ours" : ""}"><div class="logo ${t.mark ? "mark" : ""}"><img src="${t.logo}" alt=""></div>
+      <div class="who"><b>${t.name}</b><span>${b.note || t.version}</span>${t.built_on ? `<em class="built"><img src="${t.built_on.logo}" alt="">${t.built_on.text}</em>` : ""}</div>
+      <div class="stack">${segs}</div>
+      <div class="total">${(b.step_ms / 1000).toFixed(2)} s<small>${b.idle_ms.toFixed(0)} ms idle</small></div></div>`;
+  };
+  const group = (g) => `<div class="group"><div class="gtitle"><b>${g.title}</b><span>${g.note}</span></div>
+    <div style="display:grid;gap:12px">${g.bars.map(bar).join("")}</div></div>`;
+  const legend = kinds.map((k) => `<span><i style="background:${COLOURS[k]}"></i>${LABELS[k] || k}</span>`).join("") + '<span><i class="idle"></i>GPU idle</span>';
+  document.getElementById("card").innerHTML = `
+    <header><img src="zt_badge.png" alt=""><div><h1>${d.title}</h1><div class="sub">${d.subtitle}</div></div>
+      <div class="when"><b>RTX 5090</b> · 32 GB<br>${d.date}<br>one training step, by kind of GPU work</div></header>
+    <div class="legend">${legend}</div>
+    <main style="grid-template-columns: 1.9fr 1fr">
+      <section class="groups">${d.groups.map(group).join("")}</section>
+      <aside><div class="eyebrow">What it shows</div><ul class="find">${d.findings.map((f) => `<li>${f}</li>`).join("")}</ul></aside>
+    </main>
+    <footer>${d.footnote}</footer>
+    ${d.draft ? '<div class="mock">DRAFT</div>' : ""}`;
+});
+</script>
+</body>
+</html>

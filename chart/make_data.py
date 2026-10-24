@@ -8,6 +8,7 @@ invalid, waiting on its rerun).
 """
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -82,6 +83,73 @@ SETTINGS = [
 ]
 
 
+PROFILES = HERE.parent / "results" / "profiles"
+KINDS = [  # as profile/sitecustomize.py: first match wins, on the CUDA kernel's name
+    ("quantise / rotate / dequantise", r"quant|hadamard|convrot|rotat|scale_|amax|absmax"),
+    ("int8 matmul", r"signed char|i8|int8.*gemm|imma|_int_mm|int8_linear|s8"),
+    ("attention", r"flash|fmha|attention|sdpa|cudnn.*(mha|attn)|softmax"),
+    ("bf16/fp32 matmul", r"gemm|sm\d+_xmma|cutlass|nvjet|ampere_|hopper_|blackwell_|cublas"),
+    ("optimizer", r"adam|multi_tensor|foreach"),
+    ("copies", r"memcpy|memset|copy_|cat_|contiguous"),
+    ("norms", r"norm"),
+]
+
+
+def kind(name: str) -> str:
+    low = name.lower()
+    return next((k for k, pat in KINDS if re.search(pat, low)), "other elementwise / fused")
+
+
+def profiled(vid: str, trainer: str, note: str = "") -> dict:
+    """A profile's step by kind of work. Older profiles kept only their top kernels: those are
+    re-sorted and the rest stays where it was."""
+    d = json.loads((PROFILES / f"{vid}.json").read_text())
+    if "kernels" in d:
+        by = {}
+        for name, (ms, _) in d["kernels"].items():
+            by[kind(name)] = by.get(kind(name), 0) + ms
+    else:
+        by = dict(d["by_kind_ms"])
+        for t in d["top_kernels"]:
+            if kind(t["name"]) != t["kind"]:
+                by[t["kind"]] -= t["ms"]
+                by[kind(t["name"])] = by.get(kind(t["name"]), 0) + t["ms"]
+    return {"trainer": trainer, "note": note, "step_ms": d["step_ms"], "idle_ms": d["idle_ms"],
+            "kernels": d["kernels_per_step"], "by_kind": {k: round(v, 1) for k, v in by.items()}}
+
+
+FINDINGS = [
+    "<b>The matmuls cost about the same</b> in all three (0.8–1.0 s of int8 and bf16 matmuls a step); "
+    "the steps differ in the work around them.",
+    "<b>Elementwise ops and copies:</b> 0.38 s for ZenTrainer, 0.88 for AI Toolkit, 1.10 for Fizgig. "
+    "ComfyUI's comfy-kitchen kernels fuse the quantise and dequantise around each int8 matmul that "
+    "the others run as separate steps.",
+    "<b>Attention:</b> 0.27 s on PyTorch's flash kernel (ZenTrainer), 0.38 on cuDNN (AI Toolkit). "
+    "Fizgig's padded, masked captions put it on the slower memory-efficient kernel: 1.01 s.",
+    "<b>With bf16 matmuls</b> ZenTrainer and AI Toolkit spend the same on matmuls (1.54 and 1.56 s); "
+    "the gap is again elementwise ops, copies and attention.",
+    "<b>Idle:</b> 16 ms a step for ZenTrainer since it reads the GPU once a step (a8c8a6e; 85 ms before).",
+]
+
+
+def profile_data() -> dict:
+    return {
+        "draft": False, "title": "Where a training step goes", "date": "2026-10-24 · steps 45–47 profiled",
+        "subtitle": "Krea 2 LoRA at 1024 px: GPU time per step by kind of work, from torch.profiler",
+        "trainers": {**TRAINERS, "zt": {**TRAINERS["zt"], "version": "0.2.0 · a8c8a6e"}}, "findings": FINDINGS,
+        "groups": [
+            {"title": "int8 weights + int8 matmuls", "note": "W8A8 forward, bf16 backward", "bars": [
+                profiled("zt-w8a8", "zt"), profiled("aitk-w8a8", "aitk"), profiled("fizgig-w8a8", "fizgig")]},
+            {"title": "int8 weights, bf16 matmuls", "note": "weight-only", "bars": [
+                profiled("zt-weightonly", "zt"), profiled("aitk-weightonly", "aitk")]},
+        ],
+        "footnote": "Measured with torch.profiler over three steps after warm-up (profile/sitecustomize.py hooks "
+                    "PyTorch's optimizer step, so no trainer's code is changed); steps run a few percent slower "
+                    "under the profiler than in the timed runs. Kernels are sorted into kinds by name. Idle: the "
+                    "step's wall time with no GPU kernel running, mostly Python queuing the next work.",
+    }
+
+
 def main() -> None:
     rows = latest()
     big = {**COMMON, "subtitle": "Three trainers, the same job, compared where they do the same maths",
@@ -106,6 +174,7 @@ def main() -> None:
              ]}
     big["draft"] = "1024" not in FINAL
     small["draft"] = "512" not in FINAL
+    (HERE / "data_profile.json").write_text(json.dumps(profile_data(), indent=2) + "\n")
     (HERE / "data_1024.json").write_text(json.dumps(big, indent=2) + "\n")
     (HERE / "data_512.json").write_text(json.dumps(small, indent=2) + "\n")
 

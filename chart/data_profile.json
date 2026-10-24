@@ -1,0 +1,132 @@
+{
+  "draft": false,
+  "title": "Where a training step goes",
+  "date": "2026-10-24 \u00b7 steps 45\u201347 profiled",
+  "subtitle": "Krea 2 LoRA at 1024 px: GPU time per step by kind of work, from torch.profiler",
+  "trainers": {
+    "zt": {
+      "name": "ZenTrainer",
+      "version": "0.2.0 \u00b7 a8c8a6e",
+      "logo": "zt_badge.png",
+      "ours": true,
+      "built_on": {
+        "logo": "comfy-logo-single.svg",
+        "text": "Built on ComfyUI"
+      }
+    },
+    "aitk": {
+      "name": "AI Toolkit",
+      "version": "0.13.39 \u00b7 609f3e5",
+      "logo": "aitk_logo.png",
+      "mark": true
+    },
+    "fizgig": {
+      "name": "Fizgig",
+      "version": "8.8 \u00b7 4b3f07f",
+      "logo": "fizgig_badge.png"
+    }
+  },
+  "findings": [
+    "<b>The matmuls cost about the same</b> in all three (0.8\u20131.0 s of int8 and bf16 matmuls a step); the steps differ in the work around them.",
+    "<b>Elementwise ops and copies:</b> 0.38 s for ZenTrainer, 0.88 for AI Toolkit, 1.10 for Fizgig. ComfyUI's comfy-kitchen kernels fuse the quantise and dequantise around each int8 matmul that the others run as separate steps.",
+    "<b>Attention:</b> 0.27 s on PyTorch's flash kernel (ZenTrainer), 0.38 on cuDNN (AI Toolkit). Fizgig's padded, masked captions put it on the slower memory-efficient kernel: 1.01 s.",
+    "<b>With bf16 matmuls</b> ZenTrainer and AI Toolkit spend the same on matmuls (1.54 and 1.56 s); the gap is again elementwise ops, copies and attention.",
+    "<b>Idle:</b> 16 ms a step for ZenTrainer since it reads the GPU once a step (a8c8a6e; 85 ms before)."
+  ],
+  "groups": [
+    {
+      "title": "int8 weights + int8 matmuls",
+      "note": "W8A8 forward, bf16 backward",
+      "bars": [
+        {
+          "trainer": "zt",
+          "note": "",
+          "step_ms": 1606.3,
+          "idle_ms": 15.6,
+          "kernels": 13946,
+          "by_kind": {
+            "copies": 111.8,
+            "other elementwise / fused": 270.1,
+            "bf16/fp32 matmul": 540.6,
+            "norms": 53.9,
+            "attention": 270.2,
+            "quantise / rotate / dequantise": 61.8,
+            "int8 matmul": 276.3,
+            "optimizer": 6.0
+          }
+        },
+        {
+          "trainer": "aitk",
+          "note": "",
+          "step_ms": 2413.8,
+          "idle_ms": 30.4,
+          "kernels": 15210,
+          "by_kind": {
+            "bf16/fp32 matmul": 721.6,
+            "other elementwise / fused": 577.3,
+            "attention": 383.8,
+            "int8 matmul": 315.4,
+            "copies": 304.2,
+            "norms": 58.5,
+            "quantise / rotate / dequantise": 15.4,
+            "optimizer": 7.2
+          }
+        },
+        {
+          "trainer": "fizgig",
+          "note": "",
+          "step_ms": 3047.7,
+          "idle_ms": 16.7,
+          "kernels": 20237,
+          "by_kind": {
+            "attention": 1010.3,
+            "other elementwise / fused": 644.7,
+            "bf16/fp32 matmul": 548.9,
+            "copies": 451.3,
+            "int8 matmul": 308.1,
+            "norms": 59.8,
+            "optimizer": 8.0
+          }
+        }
+      ]
+    },
+    {
+      "title": "int8 weights, bf16 matmuls",
+      "note": "weight-only",
+      "bars": [
+        {
+          "trainer": "zt",
+          "note": "",
+          "step_ms": 2395.9,
+          "idle_ms": 43.8,
+          "kernels": 13610,
+          "by_kind": {
+            "copies": 121.0,
+            "other elementwise / fused": 288.5,
+            "bf16/fp32 matmul": 1536.6,
+            "norms": 55.8,
+            "attention": 286.8,
+            "quantise / rotate / dequantise": 56.5,
+            "optimizer": 7.0
+          }
+        },
+        {
+          "trainer": "aitk",
+          "note": "",
+          "step_ms": 2881.8,
+          "idle_ms": 30.3,
+          "kernels": 13880,
+          "by_kind": {
+            "bf16/fp32 matmul": 1559.7,
+            "other elementwise / fused": 529.7,
+            "attention": 374.2,
+            "copies": 325.1,
+            "norms": 56.2,
+            "optimizer": 6.7
+          }
+        }
+      ]
+    }
+  ],
+  "footnote": "Measured with torch.profiler over three steps after warm-up (profile/sitecustomize.py hooks PyTorch's optimizer step, so no trainer's code is changed); steps run a few percent slower under the profiler than in the timed runs. Kernels are sorted into kinds by name. Idle: the step's wall time with no GPU kernel running, mostly Python queuing the next work."
+}

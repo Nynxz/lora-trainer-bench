@@ -56,6 +56,25 @@ implementations, not their choice of precision:
 - **ZenTrainer is also ahead with bf16 matmuls** (2.21 against 2.77), where no int8 kernels run, so
   part of the difference is outside the matmuls. We haven't profiled where yet; that's next.
 
+### Where the time goes
+
+![Where a training step goes](chart/chart_profile.png)
+
+`bench.py profile <variant>…` runs a variant for 60 steps and profiles steps 45–47 with
+torch.profiler, writing `results/profiles/<variant>.json`: GPU time per step by kind of kernel, the
+time the GPU sat idle, and every kernel. [`profile/sitecustomize.py`](profile/sitecustomize.py) does
+it from inside the trainer's Python (loaded through `PYTHONPATH`, hooked on PyTorch's optimizer
+step), so no trainer's code is changed; profiled runs aren't results. `BENCH_PROFILE_TRACE=1` also
+saves the timeline, and [`profile/who.py`](profile/who.py) totals kernels and idle gaps by the code
+that launched them.
+
+At the same maths the three do about the same matmul work. ZenTrainer's steps are shorter in what
+surrounds it: fewer elementwise ops and copies (ComfyUI's fused int8 kernels) and PyTorch's flash
+attention; Fizgig's masked captions put it on a slower attention kernel. The ZenTrainer rows are
+from [`a8c8a6e`](https://github.com/Nynxz/ZenTrainer/commit/a8c8a6e), which reads the GPU once a
+step instead of six times (idle 85 → 16 ms; in a timed run 1.60 → 1.58 s). The first round, at
+`abd4261`, is kept in `results/profiles/abd4261/`.
+
 ### ZenTrainer's own int8 backward
 
 Every row above uses each trainer's standard backward pass, in bf16. ZenTrainer can also run the
@@ -142,7 +161,8 @@ configs/             each trainer's configuration (the settings every variant sh
 trainers/install.sh  clones and installs one trainer, as its project documents
 scripts/             fetching the models
 dataset/             the synthetic dataset generator
-bench.py             the runner: prepare, run, results
+bench.py             the runner: prepare, run, results, profile, trial
+profile/             the step profiler (sitecustomize.py) and who.py, for its timelines
 results/             results.jsonl (every run), environment.json (the machine), models.sha256
 chart/               the published chart, made from results/
 ```

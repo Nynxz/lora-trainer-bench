@@ -160,11 +160,14 @@ def stop_zentrainer() -> None:
         time.sleep(1)
 
 
-def run(vid: str, steps: int) -> dict:
+def run(vid: str, steps: int, profile: Path | None = None, record: Path = RESULTS) -> dict:
     v = variant(vid)
     stop_zentrainer()
     cmd, cwd, env = COMMANDS[v["trainer"]](v, steps)
-    log = WORK / "logs" / f"{vid}_{steps}.log"
+    if profile:  # profile/sitecustomize.py, loaded by the trainer's Python; such a run isn't a result
+        env = {**env, "BENCH_PROFILE": str(profile),
+               "PYTHONPATH": os.pathsep.join(filter(None, [str(ROOT / "profile"), os.environ.get("PYTHONPATH")]))}
+    log = WORK / "logs" / f"{vid}_{steps}{'_profile' if profile else ''}.log"
     log.parent.mkdir(parents=True, exist_ok=True)
     base = gpu_used_mb()
     peak = [base]
@@ -205,8 +208,11 @@ def run(vid: str, steps: int) -> dict:
            "step_times": {k: round(t - min(seen.values()), 2) for k, t in sorted(seen.items())},
            "wall_s": round(wall, 1), "exit": code, "gpu_before_mb": base, "gpu_peak_mb": peak[0],
            "peak_over_base_mb": peak[0] - base, "at": time.strftime("%Y-%m-%d %H:%M:%S")}
-    RESULTS.parent.mkdir(exist_ok=True)
-    with open(RESULTS, "a") as f:
+    if profile:
+        print(json.dumps({k: row[k] for k in ("variant", "s_per_step", "exit")}), flush=True)
+        return row
+    record.parent.mkdir(parents=True, exist_ok=True)
+    with open(record, "a") as f:
         f.write(json.dumps(row) + "\n")
     print(json.dumps(row), flush=True)
     return row
@@ -284,6 +290,16 @@ def main() -> None:
             run(v["id"], MATRIX["runs"]["steps"])
         stop_zentrainer()
         results()
+    elif cmd == "profile":  # a few steps of each variant under torch.profiler, into results/profiles/
+        out = ROOT / "results" / "profiles"
+        out.mkdir(parents=True, exist_ok=True)
+        for vid in sys.argv[2:]:
+            run(vid, 60, profile=out / f"{vid}.json")
+        stop_zentrainer()
+    elif cmd == "trial":  # timed like run, into work/trials.jsonl: trying a change, not a result
+        for vid in sys.argv[2:]:
+            run(vid, MATRIX["runs"]["steps"], record=WORK / "trials.jsonl")
+        stop_zentrainer()
     elif cmd == "results":
         results()
     elif cmd == "env":

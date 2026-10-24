@@ -2,3 +2,4 @@ trainers/src/
 models/
 work/
 __pycache__/
+*.trace.json
